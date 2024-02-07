@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// import 'package:uuid/uuid.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 void main() {
@@ -57,18 +58,113 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
-  var subscription =
-      FlutterBluePlus.adapterState.listen((BluetoothAdapterState state) {
-    print(state);
-    if (state == BluetoothAdapterState.on) {
-      // usually start scanning, connecting, etc
-    } else {
-      // show an error to the user, etc
-    }
-  });
+  // BluetoothDevice? _device;
+  // var subscription =
+  //     FlutterBluePlus.adapterState.listen((BluetoothAdapterState state) {
+  //   print(state);
+  //   if (state == BluetoothAdapterState.on) {
+  //     // usually start scanning, connecting, etc
+  //   } else {
+  //     // show an error to the user, etc
+  //   }
+  // });
+
+  // var subscription = FlutterBluePlus.onScanResults.listen(
+  //   (results) {
+  //     if (results.isNotEmpty) {
+  //       ScanResult r = results.last; // the most recently found device
+  //       print('${r.device.remoteId}: "${r.advertisementData.advName}" found!');
+  //     }
+  //   },
+  //   onError: (e) => print(e),
+  // );
+
+  var subscription = FlutterBluePlus.onScanResults.listen(
+    (results) async {
+      if (results.isNotEmpty) {
+        ScanResult r = results.last; // the most recently found device
+        print('${r.device.remoteId}: "${r.advertisementData.advName}" found!');
+
+        if (r.advertisementData.advName == "Hue") {
+          print('Hue found!');
+          BluetoothDevice device = r.device;
+
+          await device.connect();
+          print('Hue connected!');
+
+          var services = await device.discoverServices();
+          print(services.length);
+
+          services.forEach((service) async {
+            print(service.serviceUuid);
+
+            var targetServiceUuid =
+                Guid("932c32bd-0000-47a2-835a-a8d455b859dd");
+
+            var brightnessCharacteristicUuid =
+                Guid("932c32bd-0003-47a2-835a-a8d455b859dd");
+
+            var temperatureCharacteristicUuid =
+                Guid("932c32bd-0004-47a2-835a-a8d455b859dd");
+
+            if (service.serviceUuid == targetServiceUuid) {
+              print('Service found!');
+              var characteristics = service.characteristics;
+
+              var brightnessCharacteristic = characteristics.firstWhere(
+                  (c) => c.characteristicUuid == brightnessCharacteristicUuid);
+
+              var temperatureCharacteristic = characteristics.firstWhere(
+                  (c) => c.characteristicUuid == temperatureCharacteristicUuid);
+
+              print(
+                  'brightnessCharacteristic found! $brightnessCharacteristic');
+              print(
+                  'temperatureCharacteristic found! $temperatureCharacteristic');
+
+              // for (BluetoothCharacteristic c in characteristics) {
+              //   if (c.characteristicUuid == brightnessCharacteristicUuid) {
+              //     List<int> value1 = await c.read();
+              //     print(value1);
+
+              // for (BluetoothCharacteristic c in characteristics) {
+              //   if (c.characteristicUuid == temperatureCharacteristicUuid) {
+              //     List<int> value1 = await c.read();
+              //     print(value1);
+
+              //     await c.write([1, 1]);
+
+              //     List<int> value2 = await c.read();
+              //     print(value2);
+              //   }
+              // }
+
+              for (int i = 1; i < 254; i += 3) {
+                await brightnessCharacteristic.write([i]);
+                await temperatureCharacteristic.write([i, i]);
+              }
+
+              for (int i = 254; i > 2; i -= 3) {
+                await brightnessCharacteristic.write([i]);
+                await temperatureCharacteristic.write([i, i]);
+              }
+            }
+          });
+
+          // await device.disconnect();
+        }
+      }
+    },
+    onError: (e) => print(e),
+  );
 
   void _incrementCounter() async {
     // Bluetoothがサポートされているか確認
+    await FlutterBluePlus.startScan(
+        // withServices: [Guid("180D")],
+        withNames: ["Hue"],
+        timeout: Duration(seconds: 10));
+
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
