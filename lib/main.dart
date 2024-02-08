@@ -57,28 +57,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-  // BluetoothDevice? _device;
-  // var subscription =
-  //     FlutterBluePlus.adapterState.listen((BluetoothAdapterState state) {
-  //   print(state);
-  //   if (state == BluetoothAdapterState.on) {
-  //     // usually start scanning, connecting, etc
-  //   } else {
-  //     // show an error to the user, etc
-  //   }
-  // });
-
-  // var subscription = FlutterBluePlus.onScanResults.listen(
-  //   (results) {
-  //     if (results.isNotEmpty) {
-  //       ScanResult r = results.last; // the most recently found device
-  //       print('${r.device.remoteId}: "${r.advertisementData.advName}" found!');
-  //     }
-  //   },
-  //   onError: (e) => print(e),
-  // );
-
   var subscription = FlutterBluePlus.onScanResults.listen(
     (results) async {
       if (results.isNotEmpty) {
@@ -93,11 +71,8 @@ class _MyHomePageState extends State<MyHomePage> {
           print('Hue connected!');
 
           var services = await device.discoverServices();
-          print(services.length);
-
           services.forEach((service) async {
-            print(service.serviceUuid);
-
+            //参考 https://future-architect.github.io/articles/20220404b/
             var targetServiceUuid =
                 Guid("932c32bd-0000-47a2-835a-a8d455b859dd");
 
@@ -110,7 +85,6 @@ class _MyHomePageState extends State<MyHomePage> {
             if (service.serviceUuid == targetServiceUuid) {
               print('Service found!');
               var characteristics = service.characteristics;
-
               var brightnessCharacteristic = characteristics.firstWhere(
                   (c) => c.characteristicUuid == brightnessCharacteristicUuid);
 
@@ -118,26 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
                   (c) => c.characteristicUuid == temperatureCharacteristicUuid);
 
               print(
-                  'brightnessCharacteristic found! $brightnessCharacteristic');
+                  'brightness characteristic found! $brightnessCharacteristic');
               print(
-                  'temperatureCharacteristic found! $temperatureCharacteristic');
-
-              // for (BluetoothCharacteristic c in characteristics) {
-              //   if (c.characteristicUuid == brightnessCharacteristicUuid) {
-              //     List<int> value1 = await c.read();
-              //     print(value1);
-
-              // for (BluetoothCharacteristic c in characteristics) {
-              //   if (c.characteristicUuid == temperatureCharacteristicUuid) {
-              //     List<int> value1 = await c.read();
-              //     print(value1);
-
-              //     await c.write([1, 1]);
-
-              //     List<int> value2 = await c.read();
-              //     print(value2);
-              //   }
-              // }
+                  'temperature characteristic found! $temperatureCharacteristic');
 
               for (int i = 1; i < 254; i += 3) {
                 await brightnessCharacteristic.write([i]);
@@ -158,21 +115,9 @@ class _MyHomePageState extends State<MyHomePage> {
     onError: (e) => print(e),
   );
 
-  void _incrementCounter() async {
-    // Bluetoothがサポートされているか確認
+  void _scanHue() async {
     await FlutterBluePlus.startScan(
-        // withServices: [Guid("180D")],
-        withNames: ["Hue"],
-        timeout: Duration(seconds: 10));
-
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+        withNames: ["Hue"], timeout: Duration(seconds: 10));
   }
 
   @override
@@ -194,39 +139,13 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+          child: ElevatedButton(
+        onPressed: _scanHue,
+        child: Text('Light up!'),
+      )
+          // Center is a layout widget. It takes a single child and positions it
+          // in the middle of the parent.
+          ),
     );
   }
 }
